@@ -106,7 +106,7 @@ subtest array => sub {
 				WHERE blog_id IN (:blog_id)
 				ORDER BY datetime DESC
 		}, {
-			blog_id => [undef],
+			blog_id => [],
 		});
 
 		is $sql, q{

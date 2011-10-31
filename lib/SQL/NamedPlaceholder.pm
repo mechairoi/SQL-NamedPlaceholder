@@ -20,19 +20,19 @@ sub bind_named {
 	my $bind = [];
 
 	$sql =~ s{:(\w+)}{
-		my $type = ref($hash->{$1});
-		if ($type eq 'ARRAY') {
-			if (@{ $hash->{$1} }) {
-				push @$bind, @{ $hash->{$1} };
-				join ', ', map { '?' } @{ $hash->{$1} };
+		my $v = $hash->{$1};
+		my @vs = ref $v eq 'ARRAY' ? @$v : ($v);
+		@vs = (undef) if !scalar @vs;
+		join ', ', map {
+			my $type = ref $_;
+			if ($type eq 'HASH') {
+				push @$bind, @{[%$_]->[1]};
+				[%$_]->[0];
 			} else {
-				push @$bind, undef;
+				push @$bind, $_;
 				'?';
 			}
-		} else {
-			push @$bind, $hash->{$1};
-			'?';
-		}
+		} @vs;
 	}eg;
 
 	wantarray ? ($sql, $bind) : [$sql, $bind];

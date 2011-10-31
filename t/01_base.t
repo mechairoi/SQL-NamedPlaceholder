@@ -119,6 +119,52 @@ subtest array => sub {
 	};
 };
 
+subtest hash => sub {
+	do {
+		my ($sql, $bind) = bind_named(q{
+			SELECT * FROM entry
+				WHERE (user_id, user_category) IN (:user)
+				ORDER BY datetime DESC
+		}, {
+			user => { q{(?, ?)}, [1, 2] },
+		});
+
+		is $sql, q{
+			SELECT * FROM entry
+				WHERE (user_id, user_category) IN ((?, ?))
+				ORDER BY datetime DESC
+		};
+
+		is_deeply $bind, [1, 2];
+	};
+
+	do {
+		my ($sql, $bind) = bind_named(q{
+			SELECT * FROM entry
+				WHERE (user_id, user_category) IN (:user)
+				ORDER BY datetime DESC
+		}, {
+			user => [ map { +{
+					bind_named (q{(:user_id, :user_category)}, $_)
+				} } {
+					user_id => 1,
+					user_category => 2,
+				}, {
+					user_id => 3,
+					user_category => 4,
+				} ],
+		});
+
+		is $sql, q{
+			SELECT * FROM entry
+				WHERE (user_id, user_category) IN ((?, ?), (?, ?))
+				ORDER BY datetime DESC
+		};
+
+		is_deeply $bind, [1, 2, 3, 4];
+	};
+};
+
 subtest exceptions => sub {
 	like exception { bind_named('', {}) }, qr/requires \$sql/;
 	like exception { bind_named('SELECT * FROM entry', []) }, qr/must specify HASH/;
